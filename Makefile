@@ -1,5 +1,5 @@
-APP = notifly.app
-BINARY = $(APP)/Contents/MacOS/notifly
+APP = Clarion.app
+BINARY = $(APP)/Contents/MacOS/clarion
 SOURCES = Sources/main.swift Sources/Notifier.swift Sources/PayloadParser.swift
 
 .PHONY: all build sign install clean
@@ -21,4 +21,4 @@ install: all
 	@echo "Installed to /Applications/$(APP)"
 
 clean:
-	rm -rf $(APP)/Contents/MacOS/notifly
+	rm -rf $(APP)/Contents/MacOS/clarion

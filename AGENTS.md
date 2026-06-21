@@ -1,93 +1,101 @@
-# notifly — Agent Instructions
+# Clarion — Agent Instructions
 
-You are building notifly: a minimal macOS Swift command-line tool packaged as a `.app` bundle that posts native notifications via `UNUserNotificationCenter`. Read SPEC.md fully before writing any code.
+You are building Clarion: a minimal macOS Swift command-line tool packaged as a `.app` bundle that posts native notifications via `UNUserNotificationCenter`. Read SPEC.md fully before writing any code.
 
 ## What you are building
 
-A Swift executable that:
-1. Reads JSON from stdin (Claude Code hook payload)
-2. Parses `hook_event_name`, `message`, `error_type` fields
-3. Accepts `--name <string>` CLI argument
-4. Posts a macOS notification with correct title, body, and sound based on event type
-5. Exits immediately after posting
-
-Packaged as a proper `.app` bundle so it appears correctly in System Settings > Notifications.
+A generic notification tool — a Swift executable that:
+1. Accepts `--title`, `--message`, `--sound` CLI flags
+2. Optionally reads a JSON object from stdin with the same fields
+3. Posts a macOS notification and exits immediately
+4. Has no knowledge of Claude Code or any specific caller
 
 ## Project structure to create
 
 ```
-notifly/
+clarion/
   Sources/
     main.swift          — entry point, argument parsing, stdin reading
     Notifier.swift      — UNUserNotificationCenter logic
-    PayloadParser.swift — JSON parsing
-  notifly.app/
+    PayloadParser.swift — JSON stdin parsing
+  Clarion.app/
     Contents/
-      Info.plist
+      Info.plist        — already provided
       MacOS/            — built binary goes here
       Resources/        — AppIcon.icns goes here (placeholder for now)
-  Makefile
+  Makefile              — already provided
 ```
 
 ## Technical decisions
 
 - **Language:** Swift 5.9+
-- **Notification API:** `UNUserNotificationCenter` — do NOT use `NSUserNotification` (deprecated)
-- **No SwiftUI, no AppKit** — this is a command-line tool, not a GUI app
-- **Requesting permission:** call `requestAuthorization(options:)` on first run; subsequent runs skip this if already granted
-- **Synchronous exit pattern:** use a `DispatchSemaphore` or `RunLoop.main.run(until:)` to wait for the async notification delivery before exiting — do not exit before the notification is posted
-- **Info.plist must include:**
-  - `LSUIElement = true` (no Dock icon)
-  - `NSUserNotificationAlertStyle = alert` (banner vs alert style preference)
-  - `CFBundleIdentifier = com.axelcb.notifly`
-  - `CFBundleName = notifly`
-  - Correct `CFBundleIconFile` pointing to `AppIcon`
+- **Notification API:** `UNUserNotificationCenter` — do NOT use `NSUserNotification` (deprecated, removed in macOS 14)
+- **No SwiftUI, no AppKit** — command-line tool only
+- **Requesting permission:** call `requestAuthorization(options: [.alert, .sound])` on first run; handle the async response before proceeding
+- **Synchronous exit pattern:** use a `DispatchSemaphore` to wait for async notification delivery before calling `exit(0)` — do not exit before the notification is posted
+- **CLI parsing:** use `CommandLine.arguments` directly — no third-party dependencies
+- **Stdin reading:** check `isatty(STDIN_FILENO)` to detect piped input; if stdin is a TTY, skip stdin reading
+- **Info.plist fields (already written):**
+  - `CFBundleIdentifier = com.axelcb.clarion`
+  - `CFBundleName = Clarion`
+  - `LSUIElement = true`
 
-## Makefile targets
+## Input priority
 
-- `make build` — compiles with `swiftc`, outputs binary to `notifly.app/Contents/MacOS/notifly`
-- `make sign` — ad-hoc signs: `codesign --force --deep --sign - notifly.app`
-- `make install` — copies `notifly.app` to `/Applications/`
+CLI flags take precedence over stdin JSON. If `--title` is provided as a flag, ignore any `title` field in stdin JSON. Apply the same rule for `--message` and `--sound`.
+
+## Sound handling
+
+Pass the sound name string directly to `UNNotificationSound(named:)`. Special case: if sound is `"default"` or empty, use `UNNotificationSound.default`. If the sound name is unrecognised by macOS, it will fall back silently — that's fine, don't validate sound names.
+
+## Makefile targets (update the existing Makefile)
+
+- `make build` — compiles with `swiftc`, outputs binary to `Clarion.app/Contents/MacOS/clarion`
+- `make sign` — ad-hoc signs: `codesign --force --deep --sign - Clarion.app`
+- `make install` — copies `Clarion.app` to `/Applications/`
 - `make all` — build + sign (default target)
+- `make clean` — removes built binary
 
 ## Error handling rules
 
-- Never crash or print to stderr in a way that would break the calling hook script
-- If stdin is empty or JSON is malformed → exit 0 silently
-- If `--name` is missing → derive from `cwd` field in payload using `URL(fileURLWithPath:).lastPathComponent`, fallback to "Claude"
-- If notification permission is denied → exit 0 silently (don't block the hook)
-- Unknown `hook_event_name` values → exit 0 silently
+- Never crash or print to stderr in a way that could break a calling shell script
+- If required fields (`title`, `message`) are missing after checking both flags and stdin → exit 0 silently
+- If stdin JSON is malformed → ignore stdin, use flags only
+- If notification permission is denied → exit 0 silently
+- On success → exit 0 with no output to stdout or stderr
 
 ## Testing
 
 After building, verify with:
 
 ```bash
-# Test Stop event
-echo '{"hook_event_name":"Stop","cwd":"/Users/test/skyscanner-vault"}' \
-  | ./notifly.app/Contents/MacOS/notifly --name "Vault"
+# Test direct flags
+/Applications/Clarion.app/Contents/MacOS/clarion \
+  --title "✅ Vault" --message "Finished" --sound "Tink"
 
-# Test Notification event  
-echo '{"hook_event_name":"Notification","cwd":"/Users/test/ios-app","message":"needs permission: run xcodebuild"}' \
-  | ./notifly.app/Contents/MacOS/notifly --name "App Dev"
+# Test stdin JSON
+echo '{"title":"⚠️ App Dev","message":"needs permission: run xcodebuild","sound":"default"}' \
+  | /Applications/Clarion.app/Contents/MacOS/clarion
 
-# Test StopFailure
-echo '{"hook_event_name":"StopFailure","cwd":"/Users/test/ios-app","error_type":"rate_limit"}' \
-  | ./notifly.app/Contents/MacOS/notifly --name "App Dev"
+# Test flags override stdin
+echo '{"title":"ignored","message":"also ignored"}' \
+  | /Applications/Clarion.app/Contents/MacOS/clarion \
+    --title "✅ Override" --message "Flags win"
 
-# Test fallback (no --name)
-echo '{"hook_event_name":"Stop","cwd":"/Users/test/skyscanner-vault"}' \
-  | ./notifly.app/Contents/MacOS/notifly
+# Test missing input (should exit silently, no notification)
+/Applications/Clarion.app/Contents/MacOS/clarion
 ```
 
-Expected: each produces a macOS notification with correct title, body, and sound. No terminal output, no errors.
+Expected: first three produce correct notifications, last exits silently with no output.
 
 ## What NOT to do
 
-- Do not add a `-sender` flag or any app identity borrowing
-- Do not add click handlers or action buttons
+- Do not add any Claude Code-specific logic — Clarion is generic
+- Do not add a `-sender` flag or app identity borrowing
+- Do not add click handlers, action buttons, or URLs
 - Do not add a persistent background process or daemon
-- Do not use `NSUserNotification` (deprecated, removed in macOS 14)
+- Do not use `NSUserNotification` (deprecated)
 - Do not add SwiftUI or AppKit dependencies
+- Do not add third-party Swift packages
 - Do not print anything to stdout or stderr on success
-- Do not add features beyond the spec — this must stay minimal
+- Do not add features beyond the spec

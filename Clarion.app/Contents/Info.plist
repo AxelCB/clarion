@@ -3,13 +3,13 @@
 <plist version="1.0">
 <dict>
 	<key>CFBundleIdentifier</key>
-	<string>com.axelcb.notifly</string>
+	<string>com.axelcb.clarion</string>
 	<key>CFBundleName</key>
-	<string>notifly</string>
+	<string>Clarion</string>
 	<key>CFBundleDisplayName</key>
-	<string>notifly</string>
+	<string>Clarion</string>
 	<key>CFBundleExecutable</key>
-	<string>notifly</string>
+	<string>Clarion</string>
 	<key>CFBundleIconFile</key>
 	<string>AppIcon</string>
 	<key>CFBundlePackageType</key>

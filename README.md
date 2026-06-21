@@ -1,23 +1,33 @@
-# notifly
+# Clarion
 
-A minimal macOS notifier app for Claude Code sessions. Reads Claude Code hook payloads from stdin and posts native macOS notifications via `UNUserNotificationCenter`.
+A minimal macOS notification tool built as a proper `.app` bundle. Posts native macOS notifications via `UNUserNotificationCenter` with a custom icon and correct app attribution in System Settings > Notifications.
 
-Built as a proper `.app` bundle so notifications appear with a real icon and are attributed correctly in System Settings > Notifications — not as "terminal-notifier" or "Script Editor".
+Designed to be called from shell scripts — accepts arguments directly or reads structured JSON from stdin.
 
 ## Usage
 
+### Direct flags
+
 ```bash
-echo '{"hook_event_name":"Stop","cwd":"/path/to/project"}' | /Applications/notifly.app/Contents/MacOS/notifly --name "Vault"
+/Applications/Clarion.app/Contents/MacOS/clarion \
+  --title "✅ Vault" \
+  --message "Finished" \
+  --sound "Tink"
 ```
 
-## Notification format
+### JSON from stdin
 
-| Event | Title | Body | Sound |
-|---|---|---|---|
-| `Notification` | `⚠️ {name}` | message from payload | Default |
-| `Stop` | `✅ {name}` | Finished | Tink |
-| `StopFailure` | `❌ {name}` | error_type from payload or "Failed" | Default |
+```bash
+echo '{"title":"⚠️ App Dev","message":"needs permission: run xcodebuild","sound":"default"}' \
+  | /Applications/Clarion.app/Contents/MacOS/clarion
+```
 
-## Integration
+## Why
 
-Used by `~/.claude/hooks/notify.sh` in the Claude Code workflow setup. The hook script resolves the session name from the matching `.code-workspace` file and passes it via `--name`.
+- `osascript` notifications are attributed to Script Editor — no custom icon
+- `terminal-notifier -sender` hangs indefinitely on modern macOS when the target app isn't running (confirmed unfixed bug)
+- Clarion is a real `.app` bundle using the proper modern notification API — no hacks, no hanging
+
+## Name
+
+A clarion is the instrument heralds used to make announcements. Fitting.

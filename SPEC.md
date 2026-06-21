@@ -1,61 +1,67 @@
-# notifly — Product Specification
+# Clarion — Product Specification
 
 ## Purpose
 
-notifly is a macOS command-line notification tool built as a proper `.app` bundle. It is designed specifically to deliver native macOS notifications from Claude Code hook events, with correct app attribution, icon, and sound — without the hanging and attribution issues of `terminal-notifier`.
+Clarion is a generic macOS command-line notification tool built as a proper `.app` bundle. It posts native macOS notifications via `UNUserNotificationCenter` with correct app attribution and a custom icon — without the hanging and attribution issues of `terminal-notifier`.
+
+It is intentionally generic: callers provide all notification content via arguments or stdin JSON. Clarion knows nothing about Claude Code or any specific application.
 
 ## Background
 
-Claude Code fires hook events (Stop, StopFailure, Notification) at the end of each session or when attention is needed. A shell script reads these events and needs to surface them as macOS notifications. Existing tools:
+Existing tools fall short on modern macOS:
 
 - `osascript` — no custom icon, attributed to Script Editor
-- `terminal-notifier` — `-sender` flag hangs indefinitely on modern macOS when target app isn't running (confirmed unfixed bug)
+- `terminal-notifier` — `-sender` flag hangs indefinitely on modern macOS when the target app isn't running (confirmed unfixed bug, unmerged fix PR)
 
-notifly solves this by being a real `.app` bundle using `UNUserNotificationCenter` directly.
+Clarion solves this by being a real `.app` bundle using `UNUserNotificationCenter` directly.
 
 ## Functional Requirements
 
-### Input
+### Input modes
 
-Reads a JSON payload from stdin. Schema matches Claude Code hook event payloads:
+**Mode 1 — CLI flags (primary):**
+
+```bash
+clarion --title "✅ Vault" --message "Finished" --sound "Tink"
+```
+
+**Mode 2 — JSON from stdin:**
 
 ```json
 {
-  "hook_event_name": "Stop | StopFailure | Notification",
-  "cwd": "/path/to/project",
-  "message": "optional message text",
-  "error_type": "optional error type for StopFailure"
+  "title": "✅ Vault",
+  "message": "Finished",
+  "sound": "Tink"
 }
 ```
 
+If both are provided, CLI flags take precedence over stdin JSON.
+
 ### Arguments
 
-- `--name <string>` — session label shown in notification title (e.g. "Vault", "App Dev"). Required.
-
-### Notification mapping
-
-| `hook_event_name` | Title | Body | Sound |
-|---|---|---|---|
-| `Notification` | `⚠️ {name}` | `message` field from payload | Default alert |
-| `Stop` | `✅ {name}` | "Finished" (hardcoded) | Tink |
-| `StopFailure` | `❌ {name}` | `error_type` field, fallback "Failed" | Default alert |
-| anything else | exit 0 silently | — | — |
+| Flag | Required | Description |
+|---|---|---|
+| `--title` | Yes (or via stdin) | Notification title |
+| `--message` | Yes (or via stdin) | Notification body |
+| `--sound` | No | Sound name (e.g. `Tink`, `Glass`, `default`). Defaults to `default`. |
 
 ### Behaviour
 
 - Posts the notification and exits immediately
-- No Dock icon, no menu bar presence (`LSUIElement = true` in Info.plist)
+- No Dock icon, no menu bar presence (`LSUIElement = true`)
 - No interactive elements (no action buttons, no click handlers)
-- If `--name` is missing, falls back to basename of `cwd` from payload
-- If stdin is empty or unparseable, exits 0 silently (never crash the hook script)
+- If required fields are missing and stdin is empty → exit 0 silently
+- If stdin JSON is malformed → fall back to CLI flags; if those are also missing → exit 0 silently
+- Never print to stdout or stderr on success
 
 ## Non-Functional Requirements
 
-- Must work on macOS 13+ (Ventura and later)
+- macOS 13+ (Ventura and later)
 - Ad-hoc code signed (`codesign --sign -`) — no Apple Developer account required
 - Delivered as a self-contained `.app` bundle
-- The app bundle icon (`AppIcon.icns`) is provided separately and placed in `Resources/` — build process must reference it
-- Callable from a bash script with no extra setup beyond placing the `.app` somewhere on disk
+- App icon (`AppIcon.icns`) placed in `Resources/` — provided separately by the owner
+- Must appear in System Settings > Notifications as "Clarion"
+- Callable from any shell script with no extra setup beyond placing the `.app` on disk
 
 ## Out of Scope
 
@@ -63,19 +69,34 @@ Reads a JSON payload from stdin. Schema matches Claude Code hook event payloads:
 - No click-to-open URL or shell command execution on notification click
 - No persistent background process or daemon
 - No menu bar UI
-- No macOS 12 or earlier support
+- No Claude Code-specific logic — all caller-specific behaviour lives in the calling script
 
 ## Delivery
 
-- `notifly.app` — the built app bundle, ad-hoc signed
-- `Makefile` — targets: `build`, `sign`, `install` (copies to `/Applications`)
-- The app must appear in System Settings > Notifications as "notifly" and allow the user to customise notification style
+- `Clarion.app` — built app bundle, ad-hoc signed
+- `Makefile` — targets: `build`, `sign`, `install`, `clean`
+- The app must appear in System Settings > Notifications as "Clarion"
 
-## Example shell integration
+## Example: Claude Code hook integration
+
+The caller (hook script) owns all Claude-specific logic:
 
 ```bash
 input=$(cat)
-name="Vault"
+event=$(jq -r '.hook_event_name' <<<"$input")
+message=$(jq -r '.message // ""' <<<"$input")
+cwd=$(jq -r '.cwd' <<<"$input")
+name="Vault"  # resolved from workspace file
 
-echo "$input" | /Applications/notifly.app/Contents/MacOS/notifly --name "$name"
+case "$event" in
+  Notification)  title="⚠️ $name"; sound="default" ;;
+  Stop)          title="✅ $name"; message="Finished"; sound="Tink" ;;
+  StopFailure)   title="❌ $name"; message=$(jq -r '.error_type // "Failed"' <<<"$input"); sound="default" ;;
+  *)             exit 0 ;;
+esac
+
+/Applications/Clarion.app/Contents/MacOS/clarion \
+  --title "$title" \
+  --message "$message" \
+  --sound "$sound"
 ```
