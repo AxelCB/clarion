@@ -31,7 +31,9 @@ clarion --title "✅ Vault" --message "Finished" --sound "Tink"
 {
   "title": "✅ Vault",
   "message": "Finished",
-  "sound": "Tink"
+  "sound": "Tink",
+  "subtitle": "skyscanner-vault",
+  "group": "claude-sessions"
 }
 ```
 
@@ -43,7 +45,10 @@ If both are provided, CLI flags take precedence over stdin JSON.
 |---|---|---|
 | `--title` | Yes (or via stdin) | Notification title |
 | `--message` | Yes (or via stdin) | Notification body |
+| `--subtitle` | No | Secondary line below title |
 | `--sound` | No | Sound name (e.g. `Tink`, `Glass`, `default`). Defaults to `default`. |
+| `--group` | No | Notification group ID — replaces any previous notification with the same group, preventing stacking |
+| `--attachment` | No | Absolute path to an image file (.png/.jpg) shown as a small thumbnail in the notification body |
 
 ### Behaviour
 
@@ -59,7 +64,6 @@ If both are provided, CLI flags take precedence over stdin JSON.
 - macOS 13+ (Ventura and later)
 - Ad-hoc code signed (`codesign --sign -`) — no Apple Developer account required
 - Delivered as a self-contained `.app` bundle
-- App icon (`AppIcon.icns`) placed in `Resources/` — provided separately by the owner
 - Must appear in System Settings > Notifications as "Clarion"
 - Callable from any shell script with no extra setup beyond placing the `.app` on disk
 
@@ -70,12 +74,44 @@ If both are provided, CLI flags take precedence over stdin JSON.
 - No persistent background process or daemon
 - No menu bar UI
 - No Claude Code-specific logic — all caller-specific behaviour lives in the calling script
+- No runtime icon override (macOS does not support this via `UNUserNotificationCenter`)
 
 ## Delivery
 
 - `Clarion.app` — built app bundle, ad-hoc signed
 - `Makefile` — targets: `build`, `sign`, `install`, `clean`
 - The app must appear in System Settings > Notifications as "Clarion"
+
+## Customising the icon
+
+The app icon is baked into the bundle at build time. macOS does not support overriding the main notification icon at runtime — it always uses the app bundle's own icon.
+
+To use a custom icon:
+
+1. Replace `Clarion.app/Contents/Resources/AppIcon.icns` with your own `.icns` file
+2. Optionally update `CFBundleName`, `CFBundleDisplayName`, and `CFBundleIdentifier` in `Info.plist` to match your use case
+3. Run `make sign` to re-sign the bundle
+4. Run `make install` to reinstall
+
+To generate an `.icns` from a `.png`:
+
+```bash
+# Using sips and iconutil (built into macOS)
+mkdir AppIcon.iconset
+sips -z 16 16     icon.png --out AppIcon.iconset/icon_16x16.png
+sips -z 32 32     icon.png --out AppIcon.iconset/icon_16x16@2x.png
+sips -z 32 32     icon.png --out AppIcon.iconset/icon_32x32.png
+sips -z 64 64     icon.png --out AppIcon.iconset/icon_32x32@2x.png
+sips -z 128 128   icon.png --out AppIcon.iconset/icon_128x128.png
+sips -z 256 256   icon.png --out AppIcon.iconset/icon_128x128@2x.png
+sips -z 256 256   icon.png --out AppIcon.iconset/icon_256x256.png
+sips -z 512 512   icon.png --out AppIcon.iconset/icon_256x256@2x.png
+sips -z 512 512   icon.png --out AppIcon.iconset/icon_512x512.png
+sips -z 1024 1024 icon.png --out AppIcon.iconset/icon_512x512@2x.png
+iconutil -c icns AppIcon.iconset -o Clarion.app/Contents/Resources/AppIcon.icns
+```
+
+For different use cases (e.g. one build attributed to Claude, one to a different tool), fork the project, update `CFBundleIdentifier` to something unique (e.g. `com.yourname.clarion-claude`), replace the icon, and build — each fork appears as a separate app in System Settings > Notifications.
 
 ## Example: Claude Code hook integration
 
@@ -98,5 +134,6 @@ esac
 /Applications/Clarion.app/Contents/MacOS/clarion \
   --title "$title" \
   --message "$message" \
-  --sound "$sound"
+  --sound "$sound" \
+  --group "claude-$name"
 ```

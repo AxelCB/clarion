@@ -36,17 +36,36 @@ clarion/
 - **CLI parsing:** use `CommandLine.arguments` directly — no third-party dependencies
 - **Stdin reading:** check `isatty(STDIN_FILENO)` to detect piped input; if stdin is a TTY, skip stdin reading
 - **Info.plist fields (already written):**
-  - `CFBundleIdentifier = com.axelcb.clarion`
+  - `CFBundleIdentifier = com.axelcollardbovy.clarion`
   - `CFBundleName = Clarion`
   - `LSUIElement = true`
 
+## Supported flags
+
+| Flag | Type | Description |
+|---|---|---|
+| `--title` | String | Notification title |
+| `--message` | String | Notification body |
+| `--subtitle` | String | Secondary line below title |
+| `--sound` | String | Sound name (`Tink`, `Glass`, `default`, etc.) |
+| `--group` | String | Thread/group identifier — replaces previous notification with same ID |
+| `--attachment` | String | Absolute path to `.png` or `.jpg` shown as thumbnail in notification body |
+
 ## Input priority
 
-CLI flags take precedence over stdin JSON. If `--title` is provided as a flag, ignore any `title` field in stdin JSON. Apply the same rule for `--message` and `--sound`.
+CLI flags take precedence over stdin JSON. If `--title` is provided as a flag, ignore any `title` field in stdin JSON. Apply the same rule for all other flags.
 
 ## Sound handling
 
 Pass the sound name string directly to `UNNotificationSound(named:)`. Special case: if sound is `"default"` or empty, use `UNNotificationSound.default`. If the sound name is unrecognised by macOS, it will fall back silently — that's fine, don't validate sound names.
+
+## Group handling
+
+If `--group` is provided, set `content.threadIdentifier` to that value. macOS uses this to replace/group notifications with the same thread ID in Notification Centre — prevents stacking when the same session fires multiple events.
+
+## Attachment handling
+
+If `--attachment` is provided, load the file as a `UNNotificationAttachment` and attach it to the notification content. If the file doesn't exist or can't be loaded, skip the attachment silently — don't fail the notification.
 
 ## Makefile targets (update the existing Makefile)
 
@@ -73,8 +92,18 @@ After building, verify with:
 /Applications/Clarion.app/Contents/MacOS/clarion \
   --title "✅ Vault" --message "Finished" --sound "Tink"
 
+# Test subtitle
+/Applications/Clarion.app/Contents/MacOS/clarion \
+  --title "⚠️ App Dev" --message "needs permission: run xcodebuild" --subtitle "skyscanner-vault"
+
+# Test group (run twice — second should replace first in Notification Centre)
+/Applications/Clarion.app/Contents/MacOS/clarion \
+  --title "✅ Vault" --message "Finished" --group "test-group"
+/Applications/Clarion.app/Contents/MacOS/clarion \
+  --title "✅ Vault" --message "Finished again" --group "test-group"
+
 # Test stdin JSON
-echo '{"title":"⚠️ App Dev","message":"needs permission: run xcodebuild","sound":"default"}' \
+echo '{"title":"⚠️ App Dev","message":"needs permission: run xcodebuild","sound":"default","subtitle":"ios-app"}' \
   | /Applications/Clarion.app/Contents/MacOS/clarion
 
 # Test flags override stdin
@@ -86,7 +115,7 @@ echo '{"title":"ignored","message":"also ignored"}' \
 /Applications/Clarion.app/Contents/MacOS/clarion
 ```
 
-Expected: first three produce correct notifications, last exits silently with no output.
+Expected: all produce correct notifications except the last which exits silently with no output.
 
 ## What NOT to do
 

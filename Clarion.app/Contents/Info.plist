@@ -3,7 +3,7 @@
 <plist version="1.0">
 <dict>
 	<key>CFBundleIdentifier</key>
-	<string>com.axelcb.clarion</string>
+	<string>com.axelcollardbovy.clarion</string>
 	<key>CFBundleName</key>
 	<string>Clarion</string>
 	<key>CFBundleDisplayName</key>
