@@ -14,16 +14,16 @@ A generic notification tool — a Swift executable that:
 
 ```
 clarion/
+  Package.swift
   Sources/
-    main.swift          — entry point, argument parsing, stdin reading
-    Notifier.swift      — UNUserNotificationCenter logic
-    PayloadParser.swift — JSON stdin parsing
+    ClarionKit/         — shared runtime + packaging logic
+    clarion/            — CLI entry point
+    ClarionPackage/     — Swift-based bundle/sign/install tool
   Clarion.app/
     Contents/
       Info.plist        — already provided
       MacOS/            — built binary goes here
       Resources/        — AppIcon.icns goes here (placeholder for now)
-  Makefile              — already provided
 ```
 
 ## Technical decisions
@@ -67,13 +67,13 @@ If `--group` is provided, set `content.threadIdentifier` to that value. macOS us
 
 If `--attachment` is provided, load the file as a `UNNotificationAttachment` and attach it to the notification content. If the file doesn't exist or can't be loaded, skip the attachment silently — don't fail the notification.
 
-## Makefile targets (update the existing Makefile)
+## Packaging commands
 
-- `make build` — compiles with `swiftc`, outputs binary to `Clarion.app/Contents/MacOS/clarion`
-- `make sign` — ad-hoc signs: `codesign --force --deep --sign - Clarion.app`
-- `make install` — copies `Clarion.app` to `/Applications/`
-- `make all` — build + sign (default target)
-- `make clean` — removes built binary
+- `swift run --disable-sandbox clarion-package bundle` — builds and assembles `Clarion.app/Contents/MacOS/clarion`
+- `swift run --disable-sandbox clarion-package sign` — ad-hoc signs: `codesign --force --deep --sign - Clarion.app`
+- `swift run --disable-sandbox clarion-package install` — copies `Clarion.app` to `/Applications/`
+- `swift run --disable-sandbox clarion-package all` — bundle + sign (default command)
+- `swift run --disable-sandbox clarion-package clean` — removes built binary and SwiftPM artifacts
 
 ## Error handling rules
 

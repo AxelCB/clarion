@@ -78,8 +78,8 @@ If both are provided, CLI flags take precedence over stdin JSON.
 
 ## Delivery
 
+- SwiftPM package providing `clarion` and `clarion-package`
 - `Clarion.app` — built app bundle, ad-hoc signed
-- `Makefile` — targets: `build`, `sign`, `install`, `clean`
 - The app must appear in System Settings > Notifications as "Clarion"
 
 ## Customising the icon
@@ -90,8 +90,8 @@ To use a custom icon:
 
 1. Replace `Clarion.app/Contents/Resources/AppIcon.icns` with your own `.icns` file
 2. Optionally update `CFBundleName`, `CFBundleDisplayName`, and `CFBundleIdentifier` in `Info.plist` to match your use case
-3. Run `make sign` to re-sign the bundle
-4. Run `make install` to reinstall
+3. Run `swift run --disable-sandbox clarion-package sign` to re-sign the bundle
+4. Run `swift run --disable-sandbox clarion-package install` to reinstall
 
 To generate an `.icns` from a `.png`:
 

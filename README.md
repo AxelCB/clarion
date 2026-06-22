@@ -4,6 +4,20 @@ A minimal macOS notification tool built as a proper `.app` bundle. Posts native 
 
 Designed to be called from shell scripts — accepts arguments directly or reads structured JSON from stdin.
 
+## Build
+
+```bash
+swift test --disable-sandbox
+swift run --disable-sandbox clarion-package bundle
+swift run --disable-sandbox clarion-package sign
+```
+
+For a local install:
+
+```bash
+swift run --disable-sandbox clarion-package install
+```
+
 ## Usage
 
 ### Direct flags

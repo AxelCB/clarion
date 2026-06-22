@@ -11,20 +11,26 @@ public struct ShellProcessRunner: ProcessRunning {
     @discardableResult
     public func run(_ launchPath: String, arguments: [String], currentDirectoryURL: URL?) throws -> String {
         let process = Process()
-        let stdout = Pipe()
-        let stderr = Pipe()
         let workingDirectoryURL = currentDirectoryURL
             ?? URL(fileURLWithPath: FileManager.default.currentDirectoryPath, isDirectory: true)
         let swiftModuleCacheURL = workingDirectoryURL
             .appendingPathComponent(".build/swift-module-cache", isDirectory: true)
         let clangModuleCacheURL = workingDirectoryURL
             .appendingPathComponent(".build/clang-module-cache", isDirectory: true)
+        let stdoutURL = FileManager.default.temporaryDirectory
+            .appendingPathComponent(UUID().uuidString, isDirectory: false)
+        let stderrURL = FileManager.default.temporaryDirectory
+            .appendingPathComponent(UUID().uuidString, isDirectory: false)
+        FileManager.default.createFile(atPath: stdoutURL.path, contents: nil)
+        FileManager.default.createFile(atPath: stderrURL.path, contents: nil)
+        let stdoutHandle = try FileHandle(forWritingTo: stdoutURL)
+        let stderrHandle = try FileHandle(forWritingTo: stderrURL)
 
         process.executableURL = URL(fileURLWithPath: launchPath)
         process.arguments = arguments
         process.currentDirectoryURL = currentDirectoryURL
-        process.standardOutput = stdout
-        process.standardError = stderr
+        process.standardOutput = stdoutHandle
+        process.standardError = stderrHandle
         process.environment = configuredEnvironment(
             base: ProcessInfo.processInfo.environment,
             swiftModuleCacheURL: swiftModuleCacheURL,
@@ -37,8 +43,11 @@ public struct ShellProcessRunner: ProcessRunning {
         try process.run()
         process.waitUntilExit()
 
-        let outputData = stdout.fileHandleForReading.readDataToEndOfFile()
-        let errorData = stderr.fileHandleForReading.readDataToEndOfFile()
+        try stdoutHandle.close()
+        try stderrHandle.close()
+
+        let outputData = try Data(contentsOf: stdoutURL)
+        let errorData = try Data(contentsOf: stderrURL)
         let output = String(decoding: outputData, as: UTF8.self)
         let error = String(decoding: errorData, as: UTF8.self)
 
@@ -50,6 +59,9 @@ public struct ShellProcessRunner: ProcessRunning {
                 stderr: error
             )
         }
+
+        try? FileManager.default.removeItem(at: stdoutURL)
+        try? FileManager.default.removeItem(at: stderrURL)
 
         return output.isEmpty ? error : output
     }

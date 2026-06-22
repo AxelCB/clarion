@@ -51,7 +51,7 @@ public struct NotificationPayload: Codable, Equatable, Sendable {
     }
 }
 
-public struct PreparedNotificationPayload: Equatable, Sendable {
+public struct PreparedNotificationPayload: Codable, Equatable, Sendable {
     public let title: String
     public let message: String
     public let subtitle: String?

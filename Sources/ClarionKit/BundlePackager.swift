@@ -98,6 +98,10 @@ public struct BundlePackager {
     }
 
     private func buildReleaseBinary() throws {
+        guard overriddenBinaryURL() == nil else {
+            return
+        }
+
         try processRunner.run(
             "/usr/bin/swift",
             arguments: ["build", "--disable-sandbox", "-c", "release", "--product", "clarion"],
@@ -106,6 +110,10 @@ public struct BundlePackager {
     }
 
     private func releaseBinaryURL() throws -> URL {
+        if let overriddenBinaryURL = overriddenBinaryURL() {
+            return overriddenBinaryURL
+        }
+
         let output = try processRunner.run(
             "/usr/bin/swift",
             arguments: ["build", "--disable-sandbox", "-c", "release", "--show-bin-path"],
@@ -114,5 +122,15 @@ public struct BundlePackager {
 
         return URL(fileURLWithPath: output, isDirectory: true)
             .appendingPathComponent("clarion", isDirectory: false)
+    }
+
+    private func overriddenBinaryURL() -> URL? {
+        guard let path = ProcessInfo.processInfo.environment["CLARION_PACKAGE_BINARY_PATH"],
+              path.isEmpty == false
+        else {
+            return nil
+        }
+
+        return URL(fileURLWithPath: path, isDirectory: false)
     }
 }
