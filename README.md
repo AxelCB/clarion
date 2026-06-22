@@ -18,6 +18,37 @@ For a local install:
 swift run --disable-sandbox clarion-package install
 ```
 
+## Icon Variants
+
+Shipped icon families live under [`Clarion.app/Contents/Resources`](/Users/axel.collardbovy/Developer/personal/clarion/Clarion.app/Contents/Resources):
+
+- `AppIcon-dark.*`
+- `AppIcon-light.*`
+- `AppIcon-tinted.*`
+
+To rebuild the bundle using one of the shipped variants:
+
+```bash
+swift run --disable-sandbox clarion-package all --icon-variant dark
+swift run --disable-sandbox clarion-package all --icon-variant light
+swift run --disable-sandbox clarion-package all --icon-variant tinted
+```
+
+To rebuild using a custom PNG source instead of the default icon:
+
+```bash
+swift run --disable-sandbox clarion-package all \
+  --icon-source claude-vscode-dark-1024.png
+```
+
+If the source image is a square render with non-transparent corners, apply a rounded alpha mask during generation:
+
+```bash
+swift run --disable-sandbox clarion-package all \
+  --icon-source clarion-logo-tinted-1024.png \
+  --rounded-mask 216
+```
+
 ## Usage
 
 ### Direct flags

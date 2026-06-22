@@ -86,29 +86,40 @@ If both are provided, CLI flags take precedence over stdin JSON.
 
 The app icon is baked into the bundle at build time. macOS does not support overriding the main notification icon at runtime — it always uses the app bundle's own icon.
 
-To use a custom icon:
+Clarion ships with generated dark, light, and tinted icon families under `Clarion.app/Contents/Resources`, and the packaging tool can activate any of them during rebuild:
+
+```bash
+swift run --disable-sandbox clarion-package all --icon-variant dark
+swift run --disable-sandbox clarion-package all --icon-variant light
+swift run --disable-sandbox clarion-package all --icon-variant tinted
+```
+
+To use a custom PNG source instead of a shipped variant:
+
+```bash
+swift run --disable-sandbox clarion-package all \
+  --icon-source /absolute/path/to/icon.png
+```
+
+If the source is a square render whose corners should be transparent, apply a rounded alpha mask while generating the icon:
+
+```bash
+swift run --disable-sandbox clarion-package all \
+  --icon-source /absolute/path/to/icon.png \
+  --rounded-mask 216
+```
+
+Manual override is still possible if you already have an `.icns` file:
 
 1. Replace `Clarion.app/Contents/Resources/AppIcon.icns` with your own `.icns` file
 2. Optionally update `CFBundleName`, `CFBundleDisplayName`, and `CFBundleIdentifier` in `Info.plist` to match your use case
 3. Run `swift run --disable-sandbox clarion-package sign` to re-sign the bundle
 4. Run `swift run --disable-sandbox clarion-package install` to reinstall
 
-To generate an `.icns` from a `.png`:
+To generate an `.icns` and iconset from a `.png` directly:
 
 ```bash
-# Using sips and iconutil (built into macOS)
-mkdir AppIcon.iconset
-sips -z 16 16     icon.png --out AppIcon.iconset/icon_16x16.png
-sips -z 32 32     icon.png --out AppIcon.iconset/icon_16x16@2x.png
-sips -z 32 32     icon.png --out AppIcon.iconset/icon_32x32.png
-sips -z 64 64     icon.png --out AppIcon.iconset/icon_32x32@2x.png
-sips -z 128 128   icon.png --out AppIcon.iconset/icon_128x128.png
-sips -z 256 256   icon.png --out AppIcon.iconset/icon_128x128@2x.png
-sips -z 256 256   icon.png --out AppIcon.iconset/icon_256x256.png
-sips -z 512 512   icon.png --out AppIcon.iconset/icon_256x256@2x.png
-sips -z 512 512   icon.png --out AppIcon.iconset/icon_512x512.png
-sips -z 1024 1024 icon.png --out AppIcon.iconset/icon_512x512@2x.png
-iconutil -c icns AppIcon.iconset -o Clarion.app/Contents/Resources/AppIcon.icns
+swift Scripts/generate_app_icon.swift icon.png Clarion.app/Contents/Resources/AppIcon-custom
 ```
 
 For different use cases (e.g. one build attributed to Claude, one to a different tool), fork the project, update `CFBundleIdentifier` to something unique (e.g. `com.yourname.clarion-claude`), replace the icon, and build — each fork appears as a separate app in System Settings > Notifications.

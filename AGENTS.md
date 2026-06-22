@@ -74,6 +74,9 @@ If `--attachment` is provided, load the file as a `UNNotificationAttachment` and
 - `swift run --disable-sandbox clarion-package install` — copies `Clarion.app` to `/Applications/`
 - `swift run --disable-sandbox clarion-package all` — bundle + sign (default command)
 - `swift run --disable-sandbox clarion-package clean` — removes built binary and SwiftPM artifacts
+- `swift run --disable-sandbox clarion-package all --icon-variant dark|light|tinted` — rebuilds using a shipped icon family
+- `swift run --disable-sandbox clarion-package all --icon-source path/to/icon.png` — rebuilds using a custom icon source
+- `swift run --disable-sandbox clarion-package all --icon-source path/to/icon.png --rounded-mask 216` — applies a rounded alpha mask for square renders with opaque corners
 
 ## Error handling rules
 
