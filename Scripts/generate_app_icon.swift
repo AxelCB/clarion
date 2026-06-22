@@ -21,16 +21,42 @@ let definitions = [
     IconDefinition(fileName: "icon_512x512@2x.png", dimension: 1024),
 ]
 
-guard CommandLine.arguments.count == 3 else {
-    FileHandle.standardError.write(Data("usage: generate_app_icon.swift <input-png> <output-prefix>\n".utf8))
+struct Options {
+    let inputPath: String
+    let outputPrefix: String
+    let roundedMaskRadius: CGFloat?
+}
+
+func parseOptions(arguments: [String]) -> Options? {
+    guard arguments.count == 3 || arguments.count == 5 else {
+        return nil
+    }
+
+    let inputPath = arguments[1]
+    let outputPrefix = arguments[2]
+
+    if arguments.count == 3 {
+        return Options(inputPath: inputPath, outputPrefix: outputPrefix, roundedMaskRadius: nil)
+    }
+
+    guard arguments[3] == "--rounded-mask", let radius = Double(arguments[4]) else {
+        return nil
+    }
+
+    return Options(inputPath: inputPath, outputPrefix: outputPrefix, roundedMaskRadius: CGFloat(radius))
+}
+
+guard let options = parseOptions(arguments: CommandLine.arguments) else {
+    FileHandle.standardError.write(Data("usage: generate_app_icon.swift <input-png> <output-prefix> [--rounded-mask <radius-px>]\n".utf8))
     exit(1)
 }
 
-let inputURL = URL(fileURLWithPath: CommandLine.arguments[1], isDirectory: false)
-let outputPrefix = CommandLine.arguments[2]
+let inputURL = URL(fileURLWithPath: options.inputPath, isDirectory: false)
+let outputPrefix = options.outputPrefix
 let outputPrefixURL = URL(fileURLWithPath: outputPrefix, isDirectory: false)
 let iconsetURL = outputPrefixURL.deletingPathExtension().appendingPathExtension("iconset")
 let icnsURL = outputPrefixURL.deletingPathExtension().appendingPathExtension("icns")
+let cleanedPNGURL = outputPrefixURL.deletingPathExtension().appendingPathExtension("png")
 let fileManager = FileManager.default
 let temporaryDirectoryURL = fileManager.temporaryDirectory
     .appendingPathComponent(UUID().uuidString, isDirectory: true)
@@ -40,7 +66,59 @@ guard let sourceImage = NSImage(contentsOf: inputURL) else {
     exit(1)
 }
 
+func maskedImageData(from image: NSImage, roundedMaskRadius: CGFloat?) throws -> Data {
+    let targetSize = image.size
+    guard
+        let bitmap = NSBitmapImageRep(
+            bitmapDataPlanes: nil,
+            pixelsWide: Int(targetSize.width),
+            pixelsHigh: Int(targetSize.height),
+            bitsPerSample: 8,
+            samplesPerPixel: 4,
+            hasAlpha: true,
+            isPlanar: false,
+            colorSpaceName: .deviceRGB,
+            bytesPerRow: 0,
+            bitsPerPixel: 0
+        )
+    else {
+        throw NSError(domain: "ClarionIconGen", code: 10)
+    }
+
+    bitmap.size = targetSize
+
+    NSGraphicsContext.saveGraphicsState()
+    guard let context = NSGraphicsContext(bitmapImageRep: bitmap) else {
+        throw NSError(domain: "ClarionIconGen", code: 11)
+    }
+    NSGraphicsContext.current = context
+    context.imageInterpolation = .high
+    NSColor.clear.setFill()
+    NSBezierPath(rect: NSRect(origin: .zero, size: targetSize)).fill()
+
+    if let roundedMaskRadius {
+        let maskPath = NSBezierPath(
+            roundedRect: NSRect(origin: .zero, size: targetSize),
+            xRadius: roundedMaskRadius,
+            yRadius: roundedMaskRadius
+        )
+        maskPath.addClip()
+    }
+
+    image.draw(in: NSRect(origin: .zero, size: targetSize))
+    NSGraphicsContext.restoreGraphicsState()
+
+    guard let pngData = bitmap.representation(using: .png, properties: [:]) else {
+        throw NSError(domain: "ClarionIconGen", code: 12)
+    }
+
+    return pngData
+}
+
 do {
+    let normalizedSourceImage = NSImage(data: try maskedImageData(from: sourceImage, roundedMaskRadius: options.roundedMaskRadius)) ?? sourceImage
+    try maskedImageData(from: sourceImage, roundedMaskRadius: options.roundedMaskRadius).write(to: cleanedPNGURL)
+
     if fileManager.fileExists(atPath: iconsetURL.path) {
         try fileManager.removeItem(at: iconsetURL)
     }
@@ -79,7 +157,7 @@ do {
         context.imageInterpolation = .high
         NSColor.clear.setFill()
         NSBezierPath(rect: NSRect(origin: .zero, size: size)).fill()
-        sourceImage.draw(in: NSRect(origin: .zero, size: size))
+        normalizedSourceImage.draw(in: NSRect(origin: .zero, size: size))
         NSGraphicsContext.restoreGraphicsState()
 
         guard let pngData = bitmap.representation(using: .png, properties: [:]) else {
