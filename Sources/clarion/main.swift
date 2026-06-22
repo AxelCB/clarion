@@ -1,8 +1,9 @@
 import ClarionKit
+import Foundation
 
 @main
 struct ClarionMain {
     static func main() {
-        _ = ClarionCommand.run()
+        Foundation.exit(ClarionCommand.run())
     }
 }
