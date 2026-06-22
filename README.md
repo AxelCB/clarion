@@ -73,6 +73,8 @@ echo '{"title":"⚠️ App Dev","message":"needs permission: run xcodebuild","so
 - `terminal-notifier -sender` hangs indefinitely on modern macOS when the target app isn't running (confirmed unfixed bug)
 - Clarion is a real `.app` bundle using the proper modern notification API — no hacks, no hanging
 
-## Name
+## Identity
 
-A clarion is the instrument heralds used to make announcements. Fitting.
+A modern heraldic insignia emerging from noise and darkness, symbolizing important information becoming clear, visible, and worthy of attention.
+
+See [DESIGN.md](DESIGN.md) for the full design rationale and asset reference.
