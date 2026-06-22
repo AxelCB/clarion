@@ -9,7 +9,7 @@
 	<key>CFBundleDisplayName</key>
 	<string>Clarion</string>
 	<key>CFBundleExecutable</key>
-	<string>Clarion</string>
+	<string>clarion</string>
 	<key>CFBundleIconFile</key>
 	<string>AppIcon</string>
 	<key>CFBundlePackageType</key>
@@ -22,7 +22,5 @@
 	<string>13.0</string>
 	<key>LSUIElement</key>
 	<true/>
-	<key>NSUserNotificationAlertStyle</key>
-	<string>alert</string>
 </dict>
 </plist>
