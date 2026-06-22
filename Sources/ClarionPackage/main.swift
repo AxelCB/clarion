@@ -9,7 +9,7 @@ struct ClarionPackageMain {
             FileHandle.standardError.write(
                 Data(
                     """
-                    usage: clarion-package [build|bundle|sign|install|all|clean] [--icon-variant dark|light|tinted] [--icon-source path/to/icon.png] [--rounded-mask radius-px]
+                    usage: clarion-package [build|bundle|sign|install|all|clean] [--icon-variant dark|light|tinted] [--icon-source path/to/icon.png] [--rounded-mask radius-px] [--bundle-id value] [--app-name value]
 
                     """.utf8
                 )
