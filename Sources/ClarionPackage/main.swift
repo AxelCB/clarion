@@ -5,11 +5,20 @@ import Foundation
 struct ClarionPackageMain {
     static func main() {
         let packageRoot = URL(fileURLWithPath: FileManager.default.currentDirectoryPath, isDirectory: true)
-        let arguments = Array(CommandLine.arguments.dropFirst())
-        let command = arguments.first.flatMap(BundlePackager.Command.init(rawValue:)) ?? .all
+        guard let options = ClarionPackageOptionsParser().parse(arguments: CommandLine.arguments) else {
+            FileHandle.standardError.write(
+                Data(
+                    """
+                    usage: clarion-package [build|bundle|sign|install|all|clean] [--icon-variant dark|light|tinted] [--icon-source path/to/icon.png] [--rounded-mask radius-px]
+
+                    """.utf8
+                )
+            )
+            Foundation.exit(1)
+        }
 
         do {
-            try BundlePackager(packageRoot: packageRoot).run(command)
+            try BundlePackager(packageRoot: packageRoot).run(options)
         } catch {
             FileHandle.standardError.write(Data("\(error)\n".utf8))
             Foundation.exit(1)
