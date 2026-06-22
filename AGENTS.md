@@ -77,6 +77,7 @@ If `--attachment` is provided, load the file as a `UNNotificationAttachment` and
 - `swift run --disable-sandbox clarion-package all --icon-variant dark|light|tinted` — rebuilds using a shipped icon family
 - `swift run --disable-sandbox clarion-package all --icon-source path/to/icon.png` — rebuilds using a custom icon source
 - `swift run --disable-sandbox clarion-package all --icon-source path/to/icon.png --rounded-mask 216` — applies a rounded alpha mask for square renders with opaque corners
+- `swift run --disable-sandbox clarion-package all --bundle-id com.example.clarion-custom --app-name ClarionCustom` — emits `ClarionCustom.app` with patched bundle metadata
 
 ## Error handling rules
 

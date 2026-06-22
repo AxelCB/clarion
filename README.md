@@ -49,6 +49,17 @@ swift run --disable-sandbox clarion-package all \
   --rounded-mask 216
 ```
 
+To produce a separately installable bundle with a different app name and bundle identifier:
+
+```bash
+swift run --disable-sandbox clarion-package all \
+  --icon-source claude-vscode-dark-icon-source.png \
+  --bundle-id com.axelcollardbovy.clarion-vscode \
+  --app-name ClarionVSCode
+```
+
+That produces `ClarionVSCode.app` in the package root with a patched `Info.plist`, while keeping the executable name `clarion`.
+
 ## Usage
 
 ### Direct flags

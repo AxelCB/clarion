@@ -101,6 +101,17 @@ swift run --disable-sandbox clarion-package all \
   --icon-source /absolute/path/to/icon.png
 ```
 
+To ship a separately installable variant under a different app name and bundle identifier:
+
+```bash
+swift run --disable-sandbox clarion-package all \
+  --icon-source /absolute/path/to/icon.png \
+  --bundle-id com.example.clarion-custom \
+  --app-name ClarionCustom
+```
+
+This produces `ClarionCustom.app` in the package root and patches `CFBundleIdentifier`, `CFBundleName`, and `CFBundleDisplayName` in the assembled bundle. `CFBundleExecutable` remains `clarion`.
+
 If the source is a square render whose corners should be transparent, apply a rounded alpha mask while generating the icon:
 
 ```bash
