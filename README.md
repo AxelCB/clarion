@@ -1,6 +1,22 @@
-# Clarion
+<p align="center">
+  <img src="clarion-logo-dark-1024.png" width="160" alt="Clarion" />
+</p>
 
-A minimal macOS notification tool built as a proper `.app` bundle. Posts native macOS notifications via `UNUserNotificationCenter` with a custom icon and correct app attribution in System Settings > Notifications.
+<h1 align="center">Clarion</h1>
+
+<p align="center">
+  A minimal macOS notification tool built as a proper <code>.app</code> bundle.<br>
+  Posts native notifications via <code>UNUserNotificationCenter</code> with a custom icon<br>
+  and correct app attribution in System Settings → Notifications.
+</p>
+
+<p align="center">
+  <img src="https://img.shields.io/badge/platform-macOS%2013%2B-lightgrey?style=flat-square" alt="macOS 13+" />
+  <img src="https://img.shields.io/badge/swift-6.2-orange?style=flat-square&logo=swift" alt="Swift 6.2" />
+  <img src="https://img.shields.io/github/license/AxelCB/clarion?style=flat-square" alt="MIT License" />
+</p>
+
+---
 
 Designed to be called from shell scripts — accepts arguments directly or reads structured JSON from stdin.
 
@@ -22,9 +38,14 @@ swift run --disable-sandbox clarion-package install
 
 Shipped icon families live under [`Clarion.app/Contents/Resources`](/Users/axel.collardbovy/Developer/personal/clarion/Clarion.app/Contents/Resources):
 
-- `AppIcon-dark.*`
-- `AppIcon-light.*`
-- `AppIcon-tinted.*`
+<p align="center">
+  <img src="clarion-logo-dark-1024.png" width="80" alt="Dark" />
+  &nbsp;&nbsp;
+  <img src="clarion-logo-light-1024.png" width="80" alt="Light" />
+  &nbsp;&nbsp;
+  <img src="clarion-logo-tinted-1024.png" width="80" alt="Tinted" />
+</p>
+<p align="center"><sub>dark &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; light &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; tinted</sub></p>
 
 To rebuild the bundle using one of the shipped variants:
 
@@ -89,3 +110,7 @@ echo '{"title":"⚠️ App Dev","message":"needs permission: run xcodebuild","so
 A modern heraldic insignia emerging from noise and darkness, symbolizing important information becoming clear, visible, and worthy of attention.
 
 See [DESIGN.md](DESIGN.md) for the full design rationale and asset reference.
+
+## License
+
+MIT © [Axel Collard Bovy](https://github.com/AxelCB)
