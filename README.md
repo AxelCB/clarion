@@ -99,6 +99,61 @@ echo '{"title":"⚠️ App Dev","message":"needs permission: run xcodebuild","so
   | /Applications/Clarion.app/Contents/MacOS/clarion
 ```
 
+## Integrations
+
+### Claude Code hooks
+
+Clarion pairs well with [Claude Code hooks](https://docs.anthropic.com/en/docs/claude-code/hooks) to get native notifications when a session finishes, fails, or needs your attention.
+
+Create `~/.claude/hooks/notify.sh`:
+
+```bash
+#!/bin/bash
+set -euo pipefail
+
+input=$(cat)
+event=$(jq -r '.hook_event_name' <<<"$input")
+message=$(jq -r '.message // ""' <<<"$input")
+name=$(basename "$(jq -r '.cwd' <<<"$input")")
+
+case "$event" in
+  Notification)  icon="⚠️";  sound="default" ;;
+  Stop)          icon="✅";  message="Finished"; sound="Tink" ;;
+  StopFailure)   icon="❌";  message=$(jq -r '.error_type // "Failed"' <<<"$input"); sound="default" ;;
+  *)             exit 0 ;;
+esac
+
+/Applications/Clarion.app/Contents/MacOS/clarion \
+  --title "$icon $name" \
+  --message "$message" \
+  --sound "$sound" \
+  --group "claude-$name"
+```
+
+Then register the hook in `~/.claude/settings.json`:
+
+```json
+{
+  "hooks": {
+    "Stop":        [{"hooks": [{"type": "command", "command": "bash ~/.claude/hooks/notify.sh"}]}],
+    "StopFailure": [{"hooks": [{"type": "command", "command": "bash ~/.claude/hooks/notify.sh"}]}],
+    "Notification":[{"hooks": [{"type": "command", "command": "bash ~/.claude/hooks/notify.sh"}]}]
+  }
+}
+```
+
+Each session fires a notification attributed to `Clarion` with the folder name as the title — distinguishable from other system notifications at a glance, and configurable via System Settings → Notifications.
+
+### Any shell script or automation tool
+
+Because Clarion is just a CLI binary, it works anywhere a shell command runs — `make` targets, CI scripts, Raycast script commands, launchd jobs, or any tool that supports shell hooks.
+
+```bash
+# Long-running task with completion notification
+make build && /Applications/Clarion.app/Contents/MacOS/clarion \
+  --title "✅ Build done" --message "Ready to test" --sound "Tink"
+```
+
 ## Why
 
 - `osascript` notifications are attributed to Script Editor — no custom icon
