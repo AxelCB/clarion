@@ -54,7 +54,7 @@ To produce a separately installable bundle with a different app name and bundle 
 ```bash
 swift run --disable-sandbox clarion-package all \
   --icon-source claude-vscode-dark-icon-source.png \
-  --bundle-id com.axelcollardbovy.clarion-vscode \
+  --bundle-id com.example.clarion-vscode \
   --app-name ClarionVSCode
 ```
 

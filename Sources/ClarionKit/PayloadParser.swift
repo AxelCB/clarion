@@ -1,3 +1,5 @@
+// Copyright (c) 2026 Axel Collard Bovy. SPDX-License-Identifier: MIT
+
 import Foundation
 
 public struct PayloadParser {
